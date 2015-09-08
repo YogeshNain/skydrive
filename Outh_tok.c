@@ -65,9 +65,7 @@ void get_toks(){
 	  if(ref_tok){
 	  fseek(ref_tok, 0, SEEK_END);
     long fsize = ftell(ref_tok);
-        if(fsize < 500){
-			return;
-		}
+        
     fseek(ref_tok, 0, SEEK_SET);
     char *resF = (char *) malloc ( sizeof(char) * fsize);
     memset(resF, '\0', sizeof(char) * fsize);
@@ -76,6 +74,7 @@ void get_toks(){
 	 str2 = strtok(tok,sep);
 	 str2 = strtok(NULL,sep);
 	 refresh_token_new = str2;
+	 printf("\nRefresh Token is : \n\n %s\n",refresh_token_new);
 	 fseek(ref_tok, 0, SEEK_SET);
     char *acsF = (char *) malloc ( sizeof(char) * fsize);
     memset(acsF, '\0', sizeof(char) * fsize);
@@ -142,7 +141,8 @@ strcat(refresh_token,refresh_token_new);
 CURL *curl;
 CURLcode res;
 char POST_DATA[2048] ={0};
-FILE *refresh = fopen("refresh_tok.txt","w");
+//Downlaod refresh token to new file.
+FILE *refresh = fopen("refresh_tok_new.txt","w");
 curl = curl_easy_init();
   if(curl) {
 	 
@@ -165,19 +165,23 @@ curl = curl_easy_init();
       curl_easy_strerror(res));
 	  curl_easy_cleanup(curl);
 	   }
-//  return 0;
+  	fseek(refresh, 0, SEEK_END);
+    long fsize = ftell(refresh);    
+    fseek(refresh, 0, SEEK_SET);
+  fclose(refresh);
+  if(fsize >300){
+	//If new file size is normal(contain refresh token then rename it with refresh_tok.txt file
+	  remove("refresh_tok.txt");
+  rename("refresh_tok_new.txt","refresh_tok.txt");  
+  }
 
 }
 
 void read_fold(){
-char url[] = "https://apis.live.net/v5.0/me/skydrive/files";
-//char client_id[1024]="client_id=00000000441607D2";
+//char url[] = "https://apis.live.net/v5.0/me/skydrive/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
+char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
 char client_secret[1024] = "?access_token=";
-//char refresh_token[1024] = "&refresh_token=MCnzaBrewM8mpFILRPxmYDUuqIOvgUWIwmTsSr3F9PofbhpR0PrFzilDLoySSCoX*dWeHT3djSgh7DUvEu4qrZeqZyTOtC*QtdWQBTv88aRT1TjkRwc5b3P!Ar6IqowFkgvApikT7QW72VzARsCT4HC0fAdPKuZXmBYf8CkGKY3MMmDXYyKCrTXu7r*6PP*YNNFCDzNYwHjvBnl7Q5QIe8Skh04*T2JS5QwtIR72J6HN4xxcJPr*9KnhWm8D4NqLXHtKIyLjj5LY4HEhTMjwMTGnhemrakTZrt9zZ9PAF1yyEbQKftn0W7LUFiLUd5P6lzUZwEMWjSYLmsZrBdkG!cmQ$";
-//char grant_type [1024] = "&grant_type=refresh_token";
-//char redirect_uri[]= "&redirect_uri=https%3A%2F%2Flogin.live.com%2Foauth20_desktop.srf";
 strcat(client_secret,access_token_new);
-
 CURL *curl;
 CURLcode res;
 char POST_DATA[2048] ={0};
@@ -185,14 +189,9 @@ FILE *refresh = fopen("folderlist.txt","w");
 curl = curl_easy_init();
   if(curl) {
 	 
-	//strcpy(POST_DATA,client_id);
 	strcat(POST_DATA,url);
 	strcat(POST_DATA,client_secret);
-	//strcat(POST_DATA,redirect_uri);
-	//strcat(POST_DATA,refresh_token);
-	//strcat(POST_DATA,grant_type);
     curl_easy_setopt(curl, CURLOPT_URL, POST_DATA);
-	//curl_easy_setopt(curl, CURLOPT_POSTFIELDS, POST_DATA);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.125 Safari/537.36");
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handleResponse);
@@ -210,10 +209,57 @@ curl = curl_easy_init();
 
 }
 
-void down_data(){
-char url[] = "https://apis.live.net/v5.0/file.";
+void create_fold(){
+//char url[] = "https://apis.live.net/v5.0/me/skydrive/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
+char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138";
+	char client_secret[1024] = "?access_token=";
+strcat(client_secret,access_token_new);
 CURL *curl;
-//id = 4FB721677BCA6BF8%21138
+CURLcode res;
+char POST_DATA[2048] ={0};
+char h_url[2048] = {0};
+char HEADER[1024] = {0};
+//FILE *refresh = fopen("folderlist.txt","w");
+curl = curl_easy_init();
+  if(curl) {
+	 struct curl_slist *chunk = NULL;
+	 strcpy(HEADER,"Authorization: Bearer ");
+	 strcat(HEADER,access_token_new);
+	 chunk = curl_slist_append(chunk, HEADER);
+	 chunk = curl_slist_append(chunk,"Content-Type: application/json");
+	  strcpy(h_url,url);
+	  printf("\nHEADERS are : %s \n",HEADER);
+	strcpy(POST_DATA,"\n{\n");
+	strcat(POST_DATA,"    \"name\": \"My New Folder\"");
+	strcat(POST_DATA,"\n}\n");
+	//strcat(h_url,client_secret);
+	printf("\nURL is : %s\n ",h_url);
+
+    curl_easy_setopt(curl, CURLOPT_URL, h_url);
+	printf("\nPOST_DATA is : %s\n",POST_DATA);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, POST_DATA);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.125 Safari/537.36");
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+    //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handleResponse);
+	//curl_easy_setopt(curl, CURLOPT_WRITEDATA, refresh);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+    res = curl_easy_perform(curl);
+	 if(res != CURLE_OK)
+      fprintf(stderr, "curl_easy_perform() failed: %s\n",
+      curl_easy_strerror(res));
+	  curl_easy_cleanup(curl);
+	   }
+
+}
+
+
+void down_data(){
+char url[1024] = "https://apis.live.net/v5.0/file.4fb721677bca6bf8.4FB721677BCA6BF8!166/content?access_token=";
+strcat(url,access_token_new);
+CURL *curl;
+//id = 4FB721677BCA6BF8
 CURLcode res;
 //char POST_DATA[2048] ={0};
 FILE *refresh = fopen("downfile.txt","w");
@@ -234,6 +280,7 @@ curl = curl_easy_init();
       curl_easy_strerror(res));
     curl_easy_cleanup(curl);
      }
+  fclose(refresh);
 }
 
 
@@ -294,23 +341,36 @@ int main()
    
    int choice;
    char filename[200] = {0};
-   get_toks();   
-   printf("Enetr ur choice\n 1.auth_tok\n 2.refresh_tok\n 3.putdata\n 4.down_data \n 5.read_fold"); 
+   printf("Enetr ur choice\n 1.auth_tok\n 2.refresh_tok\n 3.putdata\n 4.down_data \n 5.read_fold\n 6.Create Folder\n"); 
 	scanf("%d",&choice);
 	if(choice == 1)
 		auth_tok();
-	if(choice == 2)
-        refresh_tok();
+	if(choice == 2){
+        get_toks();
+		refresh_tok();
+
+	}
     //read_fold();
     //uplaod_data();
     if(choice == 3){
       printf("\nEnter File name: ");
       gets(filename);
-      putdata("urls.txt");
+	  get_toks();
+      putdata("img.jpg");
   }
   if(choice ==4)
+  {
+	  get_toks();
     down_data();
-  if(choice ==5)
-      read_fold();
+
+  }
+  if(choice ==5){
+   get_toks();
+	  read_fold();
+  }
+  if(choice ==6){
+  get_toks();
+  create_fold();
+  }
 	main();
 }
