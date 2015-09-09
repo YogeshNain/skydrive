@@ -27,6 +27,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 char *access_token_new ;
 char *refresh_token_new;
+char fold_id[1024] = {0};
 size_t handleResponse(char *ptr, size_t size, size_t nmemb, void *stream)
 {
     int i;
@@ -86,7 +87,32 @@ void get_toks(){
 	  }
    fclose(ref_tok);
 }
-
+void get_fold_id(){
+    char str1[] = " \"folder.";
+    char *str2;
+    char *sep = ":\"";
+	char *tok;
+    FILE *ref_tok = fopen("new_fold_id.txt","r");
+	  if(ref_tok){
+	  fseek(ref_tok, 0, SEEK_END);
+    long fsize = ftell(ref_tok);
+        if(fsize < 500)
+        return;
+    fseek(ref_tok, 0, SEEK_SET);
+    char *resF = (char *) malloc ( sizeof(char) * fsize);
+    memset(resF, '\0', sizeof(char) * fsize);
+    fread(resF, sizeof(char), fsize, ref_tok);
+	 // printf("\nFile Content is : \n%s \n",resF);
+    tok = strstr(resF,str1);
+   // printf("Tok is \n%s\n",tok);
+	 str2 = strtok(tok,sep);
+	 str2 = strtok(NULL,sep);
+	 printf("\nfolder Id is  is \t\n\n\t %s\n\n\n",str2);
+	 fclose(ref_tok);
+	 strcpy(fold_id,str2);
+	 printf("%s\n",fold_id);
+	  }
+}
 void auth_tok()
 {
 char url[] = "https://login.live.com/oauth20_token.srf";
@@ -179,7 +205,10 @@ curl = curl_easy_init();
 
 void read_fold(){
 //char url[] = "https://apis.live.net/v5.0/me/skydrive/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
-char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
+//char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
+char url[1024] = "https://apis.live.net/v5.0/";
+strcat(url,fold_id);
+strcat(url,"/files");
 char client_secret[1024] = "?access_token=";
 strcat(client_secret,access_token_new);
 CURL *curl;
@@ -210,8 +239,8 @@ curl = curl_easy_init();
 }
 
 void create_fold(){
-//char url[] = "https://apis.live.net/v5.0/me/skydrive/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138/files";
-char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138";
+char url[] = "https://apis.live.net/v5.0/me/skydrive/";
+//char url[] = "https://apis.live.net/v5.0/folder.4fb721677bca6bf8.4FB721677BCA6BF8!138";
 	char client_secret[1024] = "?access_token=";
 strcat(client_secret,access_token_new);
 CURL *curl;
@@ -219,9 +248,15 @@ CURLcode res;
 char POST_DATA[2048] ={0};
 char h_url[2048] = {0};
 char HEADER[1024] = {0};
-//FILE *refresh = fopen("folderlist.txt","w");
-curl = curl_easy_init();
-  if(curl) {
+FILE *refresh = fopen("new_fold_id.txt","w");
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d-%H-%M-%S", &tstruct);
+	printf("Time and Date is %s\n",buf); 
+    curl = curl_easy_init();
+    if(curl) {
 	 struct curl_slist *chunk = NULL;
 	 strcpy(HEADER,"Authorization: Bearer ");
 	 strcat(HEADER,access_token_new);
@@ -230,18 +265,17 @@ curl = curl_easy_init();
 	  strcpy(h_url,url);
 	  printf("\nHEADERS are : %s \n",HEADER);
 	strcpy(POST_DATA,"\n{\n");
-	strcat(POST_DATA,"    \"name\": \"My New Folder\"");
+	strcat(POST_DATA,"    \"name\": \"");
+	strcat(POST_DATA,buf);
+	strcat(POST_DATA,"\"");
 	strcat(POST_DATA,"\n}\n");
-	//strcat(h_url,client_secret);
-	printf("\nURL is : %s\n ",h_url);
-
     curl_easy_setopt(curl, CURLOPT_URL, h_url);
 	printf("\nPOST_DATA is : %s\n",POST_DATA);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, POST_DATA);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.125 Safari/537.36");
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-    //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handleResponse);
-	//curl_easy_setopt(curl, CURLOPT_WRITEDATA, refresh);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, handleResponse);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, refresh);
 	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -251,7 +285,7 @@ curl = curl_easy_init();
       curl_easy_strerror(res));
 	  curl_easy_cleanup(curl);
 	   }
-
+  fclose(refresh);
 }
 
 
@@ -284,15 +318,17 @@ curl = curl_easy_init();
 }
 
 
-void putdata(char *file)
+void putdata(char *file, char *id)
 {
   CURL *curl;
   CURLcode res;
   FILE * hd_src ;
   struct stat file_info;
  //https://onedrive.live.com/redir?resid=4FB721677BCA6BF8!135&authkey=!AEbne5Fcl8XBedg&ithint=file%2ctxt
-  char url[1024]="https://apis.live.net/v5.0/me/skydrive/files/";
-   strcat(url,file);
+  char url[1024]="https://apis.live.net/v5.0/";
+  strcat(url,id);
+  strcat(url,"/files/");
+  strcat(url,file);
    strcat(url,"?");
    strcat(url,"access_token=");
    strcat(url,access_token_new);
@@ -341,8 +377,10 @@ int main()
    
    int choice;
    char filename[200] = {0};
+   get_fold_id();
    printf("Enetr ur choice\n 1.auth_tok\n 2.refresh_tok\n 3.putdata\n 4.down_data \n 5.read_fold\n 6.Create Folder\n"); 
 	scanf("%d",&choice);
+	
 	if(choice == 1)
 		auth_tok();
 	if(choice == 2){
@@ -356,7 +394,7 @@ int main()
       printf("\nEnter File name: ");
       gets(filename);
 	  get_toks();
-      putdata("img.jpg");
+      putdata("img.jpg",fold_id);
   }
   if(choice ==4)
   {
