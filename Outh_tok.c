@@ -63,7 +63,8 @@ void get_toks(){
 	char auth[] = "\"access_token\":\"";
     char *str_acs;
    	FILE *ref_tok = fopen("refresh_tok.txt","r");
-	  if(ref_tok){
+	  if(ref_tok!=NULL){
+             printf("\nReading refresh token file.....!\n ");
 	  fseek(ref_tok, 0, SEEK_END);
     long fsize = ftell(ref_tok);
         
@@ -85,6 +86,33 @@ void get_toks(){
 	 str_acs = strtok(NULL,sep);
       access_token_new = str_acs;
 	  }
+     else {
+     
+      ref_tok = fopen("auth_tok.c","r");
+           if (!ref_tok){  printf("Can not get access token and refresh token from files\nExiting......!"); exit(0);}
+       printf("\nReading Access token file......!\n");  
+       fseek(ref_tok, 0, SEEK_END);
+    long fsize = ftell(ref_tok);
+
+    fseek(ref_tok, 0, SEEK_SET);
+    char *resF = (char *) malloc ( sizeof(char) * fsize);
+    memset(resF, '\0', sizeof(char) * fsize);
+    fread(resF, sizeof(char), fsize, ref_tok);
+    tok = strstr(resF,str1);
+         str2 = strtok(tok,sep);
+         str2 = strtok(NULL,sep);
+         refresh_token_new = str2;
+         printf("\nRefresh Token is : \n\n %s\n",refresh_token_new);
+         fseek(ref_tok, 0, SEEK_SET);
+    char *acsF = (char *) malloc ( sizeof(char) * fsize);
+    memset(acsF, '\0', sizeof(char) * fsize);
+    fread(acsF, sizeof(char), fsize, ref_tok);
+         tok2 = strstr(acsF,auth);
+          str_acs = strtok(tok2,sep);
+         str_acs = strtok(NULL,sep);
+      access_token_new = str_acs;       
+   
+    }
    fclose(ref_tok);
 }
 void get_fold_id(){
@@ -119,13 +147,15 @@ char url[] = "https://login.live.com/oauth20_token.srf";
 char scope[100] = "scope=wl.offline_access,wl.skydrive_update";
 char redirect_uri[]= "&redirect_uri=https%3A%2F%2Flogin.live.com%2Foauth20_desktop.srf";
 char response_type[]="&response_type=token";
-char client_id[1024]="&client_id=00000000441607D2";
+char client_id[1024]="&client_id=00000000481697F3";
 char grant_type[1024]="&grant_type=authorization_code";
-char code[1024] = "&code=M529bf93e-1235-89e5-81f8-29cf8a4dfb43";
-char client_secret[1024] = "&client_secret=UoW-UK0bHvOhwa66yGDtZkl4LHgkfQQN";
+char code[1024] = "&code=Me669b178-7e9b-2678-b994-42759320cb34";
+char client_secret[1024] = "&client_secret=trJKUSVtx48FJ516YuEdtGBFXfAbm4MV";
 CURL *curl;
 CURLcode res;
-char POST_DATA[2048] ={0};//{"https://login.live.com/oauth20_authorize.srf?client_id=00000000441607D2&display=page&locale=en&redirect_uri=http%3A%2F%2Flogin.live.com/oauth20_desktop.srf&response_type=token&scope=wl.skydrive_update&state=redirect_type%3Dauth%26display%3Dpage%26request_ts%3D1441603159895%26response_method%3Durl%26secure_cookie%3Dfalse"};
+char POST_DATA[2048] ={0};
+//https://login.live.com/oauth20_token.srf?client_id=00000000481697F3&redirect_uri=https%3A%2F%2Flogin.live.com%2Foauth20_desktop.srf&client_secret=trJKUSVtx48FJ516YuEdtGBFXfAbm4MV&code=Mdd3cece5-124c-58ab-290e-81534a9fd0a8&grant_type=authorization_code
+//
 FILE *auth = fopen("auth_tok.txt","w");
 curl = curl_easy_init();
   if(curl) {
@@ -138,6 +168,7 @@ curl = curl_easy_init();
 	strcat(POST_DATA,code);
 	strcat(POST_DATA,client_secret);
 	printf("POST_DATA is : %s\n",POST_DATA);
+        printf("\nPOST URL is : %s\n",url);
     curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, POST_DATA);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.125 Safari/537.36");
@@ -158,11 +189,11 @@ curl = curl_easy_init();
 void refresh_tok(){
 	printf("Taking refresh token ... ..... ....... \n");
 char url[] = "https://login.live.com/oauth20_token.srf";
-char client_id[1024]="client_id=00000000441607D2";
-char client_secret[1024] = "&client_secret=UoW-UK0bHvOhwa66yGDtZkl4LHgkfQQN";
+char client_id[1024]="client_id=00000000481697F3";
+char client_secret[1024] = "&client_secret=trJKUSVtx48FJ516YuEdtGBFXfAbm4MV";
 char grant_type [1024] = "&grant_type=refresh_token";
 char redirect_uri[]= "&redirect_uri=https%3A%2F%2Flogin.live.com%2Foauth20_desktop.srf";
-char refresh_token[1024] = "&refresh_token=";//MCrrxdH*p5m9lrs6Tqe1NRf8daTfAowHCp4tvXrL0PiootT1TrMFQ*xqLvlBgYLhKK6qnQL29gNIfKVqJ7!WdLwcu1PmMeJonj2AmD!kmq3R32*6IUldLuVvmOM5gs15MksV57fziEpg*7JkNdQTUBQcniQLghMKBvZwniGLxBw0NmhDvehAnwDKNoN!c9yC82jV!oNecP6BJQPLL!1zhIE7cYj1PflF0Rx1bjQ6qmjwuKJKqH*0Uthx7jUAWTRUR4BkKWX24iVrkL2fJgcJbTOiUJgfdawWTN4pBELwNznXPvfu!S7nWmKF6ksEJiEdmJ1hJu4XpxfgOa0HaIPH6tSgBbE!9kQNctxSOxDatlb5x";
+char refresh_token[1024] = "&refresh_token=";//MCinD7h5L4CmItgZFVQbzw4anKlFygH5vbrja4nr!uGudafjUhM4SLcjL!pjcgUtjPm9epRxpUGbPtBZoY1e6ov*L0wZMUeuVi8ERoUB98WinCtq7aAJ2nPp3EV8owYTI1rY7A6DoTicxO8XZwxU21Koa7PSaFKuOfIYNIGXwuEr1pggvURKQgIG7QS650*TvkqIYMRF!*zQ06RfI8c7RWBsLd6DM39QlBqre!upRlBXS2HM7tyHH*zH6rxZ!tvgxzt3C3jEKeuezUrFMZDfKeSp2XsBMthng6y1uGW3xtyQdtOSNzC2x9ASHT80y7yju9s6siY1dUBfSC9VzOkiSuybMAktCM01TyqEBGpW0D*NO";
 strcat(refresh_token,refresh_token_new);
 CURL *curl;
 CURLcode res;
@@ -394,7 +425,7 @@ int main()
       printf("\nEnter File name: ");
       gets(filename);
 	  get_toks();
-      putdata("img.jpg",fold_id);
+      putdata("downfile.txt",fold_id);
   }
   if(choice ==4)
   {
